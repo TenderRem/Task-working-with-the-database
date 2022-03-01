@@ -1,0 +1,223 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <cstdlib>
+#include <windows.h>
+
+using namespace std;
+
+struct PassInfo {
+	string lastName;
+	string firstName;
+	string numberFlight;
+	int countItems = 0;
+	int totalWeight = 0;
+};
+
+void choice_menu();
+bool сheck_open_file_reading(ifstream* file, string& path, PassInfo** pass, int& count);
+void new_data(ofstream* fout, string& path);
+void add_to_end(ofstream* fout, string& path);
+void sort(PassInfo* pass, int count);
+void max_item(PassInfo* pass, int count);
+void pass_dep(PassInfo* pass, int count);
+void print_pass(PassInfo* pass, int count);
+
+int main() {
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+	int choice = 0;
+	string path;
+	ifstream fin;
+	ofstream fout;
+	int count = 0;
+	PassInfo* pass = new PassInfo;
+
+	do {
+		choice_menu();
+		cout << endl;
+		cout << "Выбор: ";
+		cin >> choice;
+		switch (choice) {
+		case 1:
+			if (!сheck_open_file_reading(&fin, path, &pass, count))	break;
+			else print_pass(pass, count);
+			break;
+		case 2:
+			new_data(&fout, path);
+			break;
+		case 3:
+			add_to_end(&fout, path);
+			break;
+		case 4: {
+			sort(pass, count);
+			print_pass(pass, count);
+			break;
+		}
+		case 5:
+			max_item(pass, count);
+			break;
+		case 6: {
+			pass_dep(pass, count);
+			break;
+		}
+		case 0:
+			cout << "Завершение работы." << endl;
+			break;
+		default:
+			cout << "Некорректный ввод!" << endl;
+		}
+	} while (choice);
+	return 0;
+}
+
+void choice_menu() {
+	cout << "1. Загрузить все данные из файла на экран;" << endl;
+	cout << "2. Ввести новые данные в файл;" << endl;
+	cout << "3. Добавить данных в конец файла;" << endl;
+	cout << "4. Сортировать базы данных по алфавиту;" << endl;
+	cout << "5. Определить пассажира с наибольшим количеством вещей;" << endl;
+	cout << "6. Вывести список пассажиров, улетающих данным рейсом, и информацию об их багаже (номер рейса вводит пользователь);" << endl;
+	cout << "0. Выход из программы." << endl;
+}
+
+bool сheck_open_file_reading(ifstream* fin, string& path, PassInfo** pass, int& count) {
+	cout << "Введите путь к файлу (файл.txt): ";
+	cin >> path;
+	cout << endl;
+	fin->open(path);
+	if (!(*fin).is_open()) {
+		cout << "Ошибка открытия файла!" << endl << endl;
+		return false;
+	}
+	else {
+		string buff; // переменная для хранения (буффер)
+		count = 0;
+		// подсчёт пассажиров
+		while (!(*fin).eof()) {
+			getline((*fin), buff);
+			count++;
+		}
+		*pass = new PassInfo[count]; // массив под пассажиров
+
+		(*fin).seekg(0, ios_base::beg); // перевод курсора на начало	
+		int iter = 0, k = 0; // iter – для информации о пассажире; k – для перехода между пассажирами
+		for ((*fin) >> buff; (!fin->eof() || iter); (*fin) >> buff) { // считываем по слову из файла
+			if (iter == 0) (*pass)[k].lastName = buff; // заполнение фамилии
+			else if (iter == 1) (*pass)[k].firstName = buff; // заполнение имени
+			else if (iter == 2) (*pass)[k].numberFlight = buff; // заполнение номера рейса
+			else if (iter == 3) (*pass)[k].countItems = stoi(buff); // заполнение количества вещей
+			else if (iter == 4) (*pass)[k].totalWeight = stoi(buff); // заполнение общего веса
+			iter++;
+			if (iter > 4) { // если всё заполнили, переходим к следующему пассажиру
+				k++;
+				iter = 0;
+			}
+		}
+		fin->close();
+		return true;
+	}
+}
+
+void new_data(ofstream* fout, string& path) {
+	cout << "Введите путь к файлу (файл.txt): ";
+	cin >> path;
+	fout->open(path, ios_base::trunc);
+	string buff;
+	int value = 0;
+	cout << "Введите количество пассажиров, которое хотите добавить: ";
+	cin >> value;
+	for (int i = 0; i < value; i++) {
+		cout << endl << "Пассажир " << i + 1 << endl;
+		cout << "Фамилия: ";
+		cin >> buff; *fout << buff << " ";
+		cout << "Имя: ";
+		cin >> buff; *fout << buff << " ";
+		cout << "Номер рейса: ";
+		cin >> buff; *fout << buff << " ";
+		cout << "Количество вещей: ";
+		cin >> buff; *fout << buff << " ";
+		cout << "Общий вес: ";
+		cin >> buff; *fout << buff;
+		if (i < value - 1)
+			*fout << '\n';
+	}
+	cout << endl;
+	fout->close();
+}
+
+void add_to_end(ofstream* fout, string& path) {
+	cout << "Введите путь к файлу (файл.txt): ";
+	cin >> path;
+	fout->open(path, ios_base::app);
+	string buff;
+	int value = 0;
+	cout << "Введите количество пассажиров, которое хотите добавить в конец файла: ";
+	cin >> value;
+	for (int i = 0; i < value; i++) {
+		cout << endl << "Пассажир " << i + 1 << endl;
+		*fout << '\n';
+		cout << "Фамилия: ";
+		cin >> buff; *fout << buff << " ";
+		cout << "Имя: ";
+		cin >> buff; *fout << buff << " ";
+		cout << "Номер рейса: ";
+		cin >> buff; *fout << buff << " ";
+		cout << "Количество вещей: ";
+		cin >> buff; *fout << buff << " ";
+		cout << "Общий вес: ";
+		cin >> buff; *fout << buff << " ";
+	}
+	cout << endl;
+	fout->close();
+}
+
+void sort(PassInfo* pass, int count) {
+	PassInfo* buff = new PassInfo; // для временного хранения значения при перезаписи
+	int positon = 0;
+	for (int i = 0; i < count - 1; i++) {
+		for (int j = count - 1; j > i; j--) {
+			if (pass[j].lastName[positon] < pass[j - 1].lastName[positon]) {
+				*buff = pass[j - 1];
+				pass[j - 1] = pass[j];
+				pass[j] = *buff;
+			}
+		}
+	}
+}
+
+void max_item(PassInfo* pass, int count) {
+	int max = 0, max_index = 0;
+	for (int i = 0; i < count; i++) {
+		if (pass[i].countItems > max) {
+			max = pass[i].countItems;
+			max_index = i;
+		}
+	}
+	cout << "Пассажир с наибольшим количеством вещей: ";
+	cout << pass[max_index].lastName << " " << pass[max_index].firstName << " " << pass[max_index].numberFlight << " ";
+	cout << pass[max_index].countItems << " " << pass[max_index].totalWeight << endl << endl;
+}
+
+void pass_dep(PassInfo* pass, int count) {
+	string value = "";
+	int k = 0;
+	cout << "Введите номер рейса: ";
+	cin >> value;
+	cout << "Пассажиры, улетающие рейсом " << value << ": " << endl;
+	for (int i = 0; i < count; i++) {
+		if (pass[i].numberFlight == value) {
+			cout << k + 1 << ". " << pass[i].lastName << " " << pass[i].firstName << " " << pass[i].countItems << " " << pass[i].totalWeight << endl;
+			k++;
+		}
+	}
+	cout << endl;
+}
+
+void print_pass(PassInfo* pass, int count) {
+	for (int i = 0; i < count; i++) {
+		cout << i + 1 << ". " << pass[i].lastName << " " << pass[i].firstName << " " << pass[i].numberFlight << " ";
+		cout << pass[i].countItems << " " << pass[i].totalWeight << endl;
+	}
+	cout << endl;
+}
